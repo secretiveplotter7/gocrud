@@ -4,17 +4,19 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "gopkg.in/go-sql-driver/mysql.v1"
+	_ "github.com/lib/pq" // PostgreSQL driver
 )
 
 var db *sql.DB
 
-// GetMongoDB function to return DB connection
+// GetDBconn function to return DB connection
 func GetDBconn() *sql.DB {
 	dbName := "AccountCrudDatabase"
 	fmt.Println("conn info:", dbName)
-	db, err := sql.Open("mysql",
-		"root:root@tcp(mysql:3306)/AccountCrudDatabase")
+	
+	// Update the connection string for PostgreSQL
+	connStr := "user=root password=root dbname=AccountCrudDatabase host=postgres port=5432 sslmode=disable"
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err.Error())
 	}

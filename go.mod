@@ -25,6 +25,7 @@ require (
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/jcchavezs/porto v0.4.0 // indirect
 	github.com/joeshaw/multierror v0.0.0-20140124173710-69b34d4ec901 // indirect
+	github.com/lib/pq v1.10.9 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/prometheus/client_golang v1.12.2 // indirect

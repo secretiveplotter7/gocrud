@@ -9,30 +9,21 @@ services:
     volumes:
       - api:/usr/src/app/
     depends_on:
-      - mysql
+      - postgres
 
-  mysql:
-    image: mysql:latest
+  postgres:
+    image: postgres:latest
     restart: always
     ports:
-      - 3306:3306
+      - 5432:5432
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: AccountCrudDatabase
-      MYSQL_PASSWORD: root
-      MYSQL_ROOT_HOST: '%'
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: AccountCrudDatabase
     volumes:
-      - db_data:/var/lib/mysql
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin:latest
-    restart: always
-    ports:
-      - 8080:80
-    environment:
-      PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: root
-
+      - db_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      
 volumes:
   api:
   db_data:

@@ -18,6 +18,7 @@ type repo struct {
 	logger log.Logger
 }
 
+// NewRepo initializes a new repository instance
 func NewRepo(db *sql.DB, logger log.Logger) (Repository, error) {
 	return &repo{
 		db:     db,
@@ -25,20 +26,33 @@ func NewRepo(db *sql.DB, logger log.Logger) (Repository, error) {
 	}, nil
 }
 
+// CreateCustomer inserts a new customer with all mandatory fields
 func (repo *repo) CreateCustomer(ctx context.Context, customer Customer) error {
-	_, err := repo.db.ExecContext(ctx, "INSERT INTO Customer(customerid, email, phone) VALUES (?, ?, ?)", customer.Customerid, customer.Email, customer.Phone)
-	if err != nil {
-		fmt.Println("Error occured inside CreateCustomer in repo")
-		return err
-	} else {
-		fmt.Println("User Created:", customer.Email)
+	if customer.Customerid == "" || customer.Email == "" || customer.Phone == "" {
+		return errors.New("all fields (customerid, email, phone) are required")
 	}
+
+	_, err := repo.db.ExecContext(ctx,
+		"INSERT INTO Customer(customerid, email, phone) VALUES ($1, $2, $3)",
+		customer.Customerid, customer.Email, customer.Phone)
+
+	if err != nil {
+		fmt.Println("Error occurred inside CreateCustomer in repo:", err)
+		return err
+	}
+
+	fmt.Println("User Created:", customer.Email)
 	return nil
 }
+
+// GetCustomerById retrieves a customer by ID
 func (repo *repo) GetCustomerById(ctx context.Context, id string) (interface{}, error) {
 	customer := Customer{}
 
-	err := repo.db.QueryRowContext(ctx, "SELECT c.customerid,c.email,c.phone FROM Customer as c where c.customerid = ?", id).Scan(&customer.Customerid, &customer.Email, &customer.Phone)
+	err := repo.db.QueryRowContext(ctx,
+		"SELECT customerid, email, phone FROM Customer WHERE customerid = $1", id).
+		Scan(&customer.Customerid, &customer.Email, &customer.Phone)
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return customer, ErrIdNotFound
@@ -47,42 +61,63 @@ func (repo *repo) GetCustomerById(ctx context.Context, id string) (interface{}, 
 	}
 	return customer, nil
 }
+
+// GetAllCustomers retrieves all customers
 func (repo *repo) GetAllCustomers(ctx context.Context) (interface{}, error) {
-	customer := Customer{}
-	var res []interface{}
-	rows, err := repo.db.QueryContext(ctx, "SELECT c.customerid,c.email,c.phone FROM Customer as c ")
+	var customers []Customer
+	rows, err := repo.db.QueryContext(ctx, "SELECT customerid, email, phone FROM Customer")
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return customer, ErrIdNotFound
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var customer Customer
+		err = rows.Scan(&customer.Customerid, &customer.Email, &customer.Phone)
+		if err != nil {
+			return nil, err
 		}
-		return customer, err
+		customers = append(customers, customer)
 	}
 
-	defer rows.Close()
-	for rows.Next() {
-		err = rows.Scan(&customer.Customerid, &customer.Email, &customer.Phone)
-		res = append([]interface{}{customer}, res...)
+	if err = rows.Err(); err != nil {
+		return nil, err
 	}
-	return res, nil
+
+	return customers, nil
 }
+
+// DeleteCustomer removes a customer by ID
 func (repo *repo) DeleteCustomer(ctx context.Context, id string) (string, error) {
-	res, err := repo.db.ExecContext(ctx, "DELETE FROM Customer WHERE customerid = ? ", id)
+	res, err := repo.db.ExecContext(ctx, "DELETE FROM Customer WHERE customerid = $1", id)
 	if err != nil {
 		return "", err
 	}
+
 	rowCnt, err := res.RowsAffected()
 	if err != nil {
 		return "", err
 	} else if rowCnt == 0 {
 		return "", ErrIdNotFound
 	}
-	return "Successfully deleted ", nil
+
+	return "Successfully deleted", nil
 }
+
+// UpdateCustomer updates customer details
 func (repo *repo) UpdateCustomer(ctx context.Context, customer Customer) (string, error) {
-	res, err := repo.db.ExecContext(ctx, "UPDATE Customer as c SET c.Email=? , c.Phone = ? WHERE c.customerid = ?", customer.Email, customer.Phone, customer.Customerid)
+	if customer.Customerid == "" || customer.Email == "" || customer.Phone == "" {
+		return "", errors.New("all fields (customerid, email, phone) are required")
+	}
+
+	res, err := repo.db.ExecContext(ctx,
+		"UPDATE Customer SET email = $1, phone = $2 WHERE customerid = $3",
+		customer.Email, customer.Phone, customer.Customerid)
+
 	if err != nil {
 		return "", err
 	}
+
 	rowCnt, err := res.RowsAffected()
 	if err != nil {
 		return "", err
@@ -91,5 +126,5 @@ func (repo *repo) UpdateCustomer(ctx context.Context, customer Customer) (string
 		return "", ErrIdNotFound
 	}
 
-	return "successfully updated", err
+	return "Successfully updated", nil
 }
